@@ -1,7 +1,7 @@
-#![feature(extern_prelude)]
-
+extern crate boss;
 use std::{thread, time};
 
+use boss::Boss;
 use std::io;
 
 fn process_data(msg: i32) {
@@ -11,7 +11,7 @@ fn process_data(msg: i32) {
 }
 
 fn main() -> io::Result<()> {
-    let mut boss = boss::create_bounded_workers(4, process_data);
+    let mut boss = Boss::new(Some(4), process_data);
     for i in 0..10 {
         boss.send_data(i);
         println!("sent {}", i);
