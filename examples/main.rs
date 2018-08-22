@@ -4,10 +4,10 @@ use std::{thread, time};
 use boss::Boss;
 use std::io;
 
-fn process_data(msg: i32) -> Result<i32, ()> {
+fn process_data(msg: i32) {
     let one_second = time::Duration::from_millis(1000);
     thread::sleep(one_second);
-    Ok(msg)
+    println!("{}", msg)
 }
 
 fn main() -> io::Result<()> {
@@ -16,11 +16,7 @@ fn main() -> io::Result<()> {
         boss.send_data(i);
         println!("sent {}", i);
     }
-    let res = boss.finish();
-    for r in res {
-        if let Ok(r) = r {
-            println!("{}", r);
-        }
-    }
+    boss.finish();
+
     Ok(())
 }

@@ -30,31 +30,29 @@ impl<T> Worker<T> {
         Worker { rx }
     }
 
-    fn run<F, R>(&self, func: F) -> Vec<R>
+    fn run<F>(&self, func: F)
     where
-        F: Fn(T) -> R,
+        F: Fn(T),
     {
-        let mut results: Vec<R> = Vec::new();
         loop {
             match self.rx.recv() {
-                Some(Work::Data(d)) => results.push(func(d)),
+                Some(Work::Data(d)) => func(d),
                 Some(Work::Quit) => {
                     break;
                 }
                 _ => break,
             }
         }
-        results
     }
 }
 
-pub struct Boss<T, R> {
+pub struct Boss<T> {
     tx: Sender<Work<T>>,
-    handles: Vec<JoinHandle<Vec<R>>>,
+    handles: Vec<JoinHandle<()>>,
     num_workers: usize,
 }
 
-impl<T, R> Boss<T, R> {
+impl<T> Boss<T> {
     /// Creates a Boss object in charge of forwarding tasks to internal
     /// workers. The queue_size is optional. If provided the Boss will
     /// block after the queue is full awaiting for workers to finish
@@ -64,11 +62,10 @@ impl<T, R> Boss<T, R> {
     /// workers in a non blocking fashion. It will allocate all the data
     /// in memory and await till every worker is done. The number of
     /// worker threads equals the number of CPU cores in the machine.
-    pub fn new<F>(queue_size: Option<usize>, func: F) -> Boss<T, R>
+    pub fn new<F>(queue_size: Option<usize>, func: F) -> Boss<T>
     where
-        F: Fn(T) -> R + Send + Copy + 'static,
+        F: Fn(T) + Send + Copy + 'static,
         T: Send + 'static,
-        R: Send + 'static,
     {
         let num_workers = num_cpus::get();
         let (tx, rx) = match queue_size {
@@ -92,31 +89,12 @@ impl<T, R> Boss<T, R> {
         self.tx.send(Work::Data(d));
     }
 
-    pub fn finish(self) -> Vec<R> {
+    pub fn finish(self) {
         for _ in 0..self.num_workers {
             self.tx.send(Work::Quit);
         }
-        let mut results: Vec<R> = vec![];
         for handle in self.handles {
-            results.extend(handle.join().unwrap().into_iter());
+            handle.join().unwrap();
         }
-        results
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn fn_test(data: &str) -> Result<String, ()> {
-        Ok(format!("Result for {}", data.to_string()))
-    }
-
-    #[test]
-    fn boss_gather_partial_results() {
-        let mut boss = Boss::new(None, fn_test);
-        boss.send_data("data 1");
-        let results = boss.finish();
-        assert_eq!(results[0], Ok("Result for data 1".to_string()))
     }
 }
