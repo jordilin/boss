@@ -56,26 +56,31 @@ pub struct Boss<T, R> {
 
 impl<T, R> Boss<T, R> {
     /// Creates a Boss object in charge of forwarding tasks to internal
-    /// workers. The queue_size is optional. If provided the Boss will
-    /// block after the queue is full awaiting for workers to finish
-    /// their job. You might want to block when there is a lot of data to
-    /// be computed by the workers and avoid filling up the machine's
-    /// memory. If the queue_size is None, the Boss will send data to the
-    /// workers in a non blocking fashion. It will allocate all the data
-    /// in memory and await till every worker is done. The number of
-    /// worker threads equals the number of CPU cores in the machine.
-    pub fn new<F>(queue_size: Option<usize>, func: F) -> Boss<T, R>
+    /// workers. The number of threads (workers) is optional. If not
+    /// provided, it will default to the number of cores in the machine.
+    /// The queue_size is optional too. If provided the Boss will block
+    /// after the queue is full awaiting for workers to finish their job.
+    /// You might want to block when there is a lot of data to be computed
+    /// by the workers and avoid filling up the machine's memory. If the
+    /// queue_size is None, the Boss will send data to the workers in a non
+    /// blocking fashion. It will allocate all the data in memory and await
+    /// till every worker is done. The number of worker threads equals the
+    /// number of CPU cores in the machine.
+    pub fn new<F>(num_threads: Option<usize>, queue_size: Option<usize>, func: F) -> Boss<T, R>
     where
         F: Fn(T) -> R + Send + Copy + 'static,
         T: Send + 'static,
         R: Send + 'static,
     {
-        let num_workers = num_cpus::get();
         let (tx, rx) = match queue_size {
             Some(capacity) => bounded(capacity),
             None => unbounded(),
         };
         let mut handles = vec![];
+        let num_workers = match num_threads {
+            Some(val) => val,
+            None => num_cpus::get(),
+        };
         for _ in 0..num_workers {
             let rx = rx.clone();
             let handle = thread::spawn(move || Worker::new(Rx(rx)).run(func));
@@ -113,8 +118,24 @@ mod tests {
     }
 
     #[test]
-    fn boss_gather_partial_results() {
-        let mut boss = Boss::new(None, fn_test);
+    fn boss_gather_partial_results_default_threads_unbounded() {
+        let mut boss = Boss::new(None, None, fn_test);
+        boss.send_data("data 1");
+        let results = boss.finish();
+        assert_eq!(results[0], Ok("Result for data 1".to_string()))
+    }
+
+    #[test]
+    fn boss_gather_partial_results_with_threads() {
+        let mut boss = Boss::new(Some(2), None, fn_test);
+        boss.send_data("data 1");
+        let results = boss.finish();
+        assert_eq!(results[0], Ok("Result for data 1".to_string()))
+    }
+
+    #[test]
+    fn boss_gather_partial_results_with_bounded_queue() {
+        let mut boss = Boss::new(None, Some(2), fn_test);
         boss.send_data("data 1");
         let results = boss.finish();
         assert_eq!(results[0], Ok("Result for data 1".to_string()))
