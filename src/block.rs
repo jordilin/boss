@@ -1,28 +1,12 @@
-use crossbeam_channel::{bounded, unbounded, Receiver, Sender};
+use crossbeam_channel::{bounded, unbounded, Sender};
 use num_cpus;
-use std::ops::Deref;
-
 use std::thread;
 use std::thread::JoinHandle;
 
+use data::{Rx, Work};
 
 pub struct Worker<T> {
     rx: Rx<Work<T>>,
-}
-
-pub enum Work<T> {
-    Data(T),
-    Quit,
-}
-
-pub struct Rx<T>(pub Receiver<T>);
-
-impl<T> Deref for Rx<T> {
-    type Target = Receiver<T>;
-
-    fn deref(&self) -> &Receiver<T> {
-        &self.0
-    }
 }
 
 impl<T> Worker<T> {
