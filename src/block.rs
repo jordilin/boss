@@ -5,7 +5,7 @@ use std::thread::JoinHandle;
 
 use data::{Rx, Work};
 
-pub struct Worker<T> {
+struct Worker<T> {
     rx: Rx<Work<T>>,
 }
 
