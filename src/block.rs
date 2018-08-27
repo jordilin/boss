@@ -86,7 +86,7 @@ impl<T, R> CSPWorkerPool<T, R> {
         }
     }
 
-    pub fn send_data(&mut self, d: T) {
+    pub fn send_data(&self, d: T) {
         self.tx.send(Work::Data(d));
     }
 
@@ -112,7 +112,7 @@ mod tests {
 
     #[test]
     fn boss_gather_partial_results_default_threads_unbounded() {
-        let mut boss = CSPWorkerPool::new(None, None, fn_test);
+        let boss = CSPWorkerPool::new(None, None, fn_test);
         boss.send_data("data 1");
         let results = boss.finish();
         assert_eq!(results[0], Ok("Result for data 1".to_string()))
@@ -120,7 +120,7 @@ mod tests {
 
     #[test]
     fn boss_gather_partial_results_with_threads() {
-        let mut boss = CSPWorkerPool::new(Some(2), None, fn_test);
+        let boss = CSPWorkerPool::new(Some(2), None, fn_test);
         boss.send_data("data 1");
         let results = boss.finish();
         assert_eq!(results[0], Ok("Result for data 1".to_string()))
@@ -128,7 +128,7 @@ mod tests {
 
     #[test]
     fn boss_gather_partial_results_with_bounded_queue() {
-        let mut boss = CSPWorkerPool::new(None, Some(2), fn_test);
+        let boss = CSPWorkerPool::new(None, Some(2), fn_test);
         boss.send_data("data 1");
         let results = boss.finish();
         assert_eq!(results[0], Ok("Result for data 1".to_string()))

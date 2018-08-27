@@ -11,7 +11,7 @@ fn process_data(msg: i32) -> Result<i32, ()> {
 }
 
 fn main() -> io::Result<()> {
-    let mut boss = CSPWorkerPool::new(None, Some(4), process_data);
+    let boss = CSPWorkerPool::new(None, Some(4), process_data);
     for i in 0..10 {
         boss.send_data(i);
         println!("sent {}", i);
