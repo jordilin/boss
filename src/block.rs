@@ -14,7 +14,7 @@ impl<T> Worker<T> {
         Worker { rx }
     }
 
-    pub fn run<F, R>(&self, func: F) -> Vec<R>
+    fn run<F, R>(&self, func: F) -> Vec<R>
     where
         F: Fn(T) -> R,
     {

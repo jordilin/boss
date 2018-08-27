@@ -13,7 +13,8 @@ impl<T, R> Worker<T, R> {
     pub fn new(rx: Rx<Work<T>>, tx: Tx<R>) -> Self {
         Worker { rx, tx }
     }
-    pub fn run<F>(&self, func: F)
+
+    fn run<F>(&self, func: F)
     where
         F: Fn(T) -> R,
     {
