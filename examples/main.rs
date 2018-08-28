@@ -1,8 +1,8 @@
 extern crate boss;
 use std::{thread, time};
 
-use boss::block::CSPWorkerPool;
-use boss::stream::CSPStreamWorkerPool;
+use boss::CSPWorkerPool;
+use boss::CSPStreamWorkerPool;
 
 use std::io;
 
