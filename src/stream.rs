@@ -10,7 +10,7 @@ struct Worker<T, R> {
 }
 
 impl<T, R> Worker<T, R> {
-    pub fn new(rx: Rx<Work<T>>, tx: Tx<R>) -> Self {
+    fn new(rx: Rx<Work<T>>, tx: Tx<R>) -> Self {
         Worker { rx, tx }
     }
 
