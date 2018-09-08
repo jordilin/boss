@@ -7,11 +7,15 @@ use data::{Rx, Work};
 
 struct Worker<T> {
     rx: Rx<Work<T>>,
+    collect_results: bool,
 }
 
 impl<T> Worker<T> {
-    fn new(rx: Rx<Work<T>>) -> Self {
-        Worker { rx }
+    fn new(rx: Rx<Work<T>>, collect_results: bool) -> Self {
+        Worker {
+            rx,
+            collect_results,
+        }
     }
 
     fn run<F, R>(&self, func: F) -> Vec<R>
@@ -21,7 +25,13 @@ impl<T> Worker<T> {
         let mut results: Vec<R> = Vec::new();
         loop {
             match self.rx.recv() {
-                Some(Work::Data(d)) => results.push(func(d)),
+                Some(Work::Data(d)) => {
+                    if self.collect_results {
+                        results.push(func(d));
+                    } else {
+                        func(d);
+                    }
+                }
                 Some(Work::Quit) => {
                     break;
                 }
@@ -59,6 +69,7 @@ impl<T, R> CSPWorkerPool<T, R> {
         num_threads: Option<usize>,
         queue_size: Option<usize>,
         func: F,
+        collect_results: bool,
     ) -> CSPWorkerPool<T, R>
     where
         F: Fn(T) -> R + Send + Copy + 'static,
@@ -76,7 +87,7 @@ impl<T, R> CSPWorkerPool<T, R> {
         };
         for _ in 0..num_workers {
             let rx = rx.clone();
-            let handle = thread::spawn(move || Worker::new(Rx(rx)).run(func));
+            let handle = thread::spawn(move || Worker::new(Rx(rx), collect_results).run(func));
             handles.push(handle);
         }
         CSPWorkerPool {
@@ -112,7 +123,7 @@ mod tests {
 
     #[test]
     fn boss_gather_partial_results_default_threads_unbounded() {
-        let boss = CSPWorkerPool::new(None, None, fn_test);
+        let boss = CSPWorkerPool::new(None, None, fn_test, true);
         boss.send_data("data 1");
         let results = boss.finish();
         assert_eq!(results[0], Ok("Result for data 1".to_string()))
@@ -120,7 +131,7 @@ mod tests {
 
     #[test]
     fn boss_gather_partial_results_with_threads() {
-        let boss = CSPWorkerPool::new(Some(2), None, fn_test);
+        let boss = CSPWorkerPool::new(Some(2), None, fn_test, true);
         boss.send_data("data 1");
         let results = boss.finish();
         assert_eq!(results[0], Ok("Result for data 1".to_string()))
@@ -128,9 +139,17 @@ mod tests {
 
     #[test]
     fn boss_gather_partial_results_with_bounded_queue() {
-        let boss = CSPWorkerPool::new(None, Some(2), fn_test);
+        let boss = CSPWorkerPool::new(None, Some(2), fn_test, true);
         boss.send_data("data 1");
         let results = boss.finish();
         assert_eq!(results[0], Ok("Result for data 1".to_string()))
+    }
+
+    #[test]
+    fn do_not_gather_results_when_collect_results_is_false() {
+        let boss = CSPWorkerPool::new(None, Some(2), fn_test, false);
+        boss.send_data("data 1");
+        let results = boss.finish();
+        assert!(results.len() == 0);
     }
 }

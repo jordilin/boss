@@ -1,8 +1,8 @@
 extern crate boss;
-use std::{thread, time};
 
-use boss::CSPWorkerPool;
 use boss::CSPStreamWorkerPool;
+use boss::CSPWorkerPool;
+use std::{thread, time};
 
 use std::io;
 
@@ -14,7 +14,7 @@ fn process_data(msg: i32) -> Result<i32, ()> {
 }
 
 fn main() -> io::Result<()> {
-    let boss = CSPWorkerPool::new(None, Some(4), process_data);
+    let boss = CSPWorkerPool::new(None, Some(4), process_data, true);
     for i in 0..10 {
         boss.send_data(i);
     }
