@@ -103,10 +103,6 @@ mod tests {
         boss.send_data(2);
         boss.send_data(3);
         boss.finish();
-        let mut count = 1;
-        for r in boss {
-            assert_eq!(count, r);
-            count += 1;
-        }
+        assert_eq!(3, boss.collect::<Vec<u32>>().len())
     }
 }
