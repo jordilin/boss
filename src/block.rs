@@ -25,14 +25,14 @@ impl<T> Worker<T> {
         let mut results: Vec<R> = Vec::new();
         loop {
             match self.rx.recv() {
-                Some(Work::Data(d)) => {
+                Ok(Work::Data(d)) => {
                     if self.collect_results {
                         results.push(func(d));
                     } else {
                         func(d);
                     }
                 }
-                Some(Work::Quit) => {
+                Ok(Work::Quit) => {
                     break;
                 }
                 _ => break,
@@ -98,12 +98,12 @@ impl<T, R> CSPWorkerPool<T, R> {
     }
 
     pub fn send_data(&self, d: T) {
-        self.tx.send(Work::Data(d));
+        self.tx.send(Work::Data(d)).unwrap();
     }
 
     pub fn finish(self) -> Vec<R> {
         for _ in 0..self.num_workers {
-            self.tx.send(Work::Quit);
+            self.tx.send(Work::Quit).unwrap();
         }
         let mut results: Vec<R> = vec![];
         for handle in self.handles {

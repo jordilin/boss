@@ -20,8 +20,8 @@ impl<T, R> Worker<T, R> {
     {
         loop {
             match self.rx.recv() {
-                Some(Work::Data(d)) => self.tx.0.send(func(d)),
-                Some(Work::Quit) => {
+                Ok(Work::Data(d)) => self.tx.0.send(func(d)).unwrap(),
+                Ok(Work::Quit) => {
                     break;
                 }
                 _ => break,
@@ -70,12 +70,12 @@ impl<T, R> CSPStreamWorkerPool<T, R> {
     }
 
     pub fn send_data(&self, d: T) {
-        self.tx.send(Work::Data(d));
+        self.tx.send(Work::Data(d)).unwrap();
     }
 
     pub fn finish(&self) {
         for _ in 0..self.num_workers {
-            self.tx.send(Work::Quit);
+            self.tx.send(Work::Quit).unwrap();
         }
     }
 }
@@ -84,7 +84,7 @@ impl<T, R> Iterator for CSPStreamWorkerPool<T, R> {
     type Item = R;
 
     fn next(&mut self) -> Option<Self::Item> {
-        return self.rx.next();
+        return self.rx.iter().next();
     }
 }
 
